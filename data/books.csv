@@ -1,0 +1,118 @@
+title,author_id,genre_id
+The Goldfinch,1,1
+A Little Life,2,1
+Normal People,3,1
+The Overstory,4,1
+Never Let Me Go,5,1
+White Teeth,6,1
+The Secret History,1,1
+Middlesex,7,1
+Beloved,8,1
+The Road,9,1
+Dune,10,2
+Ender's Game,11,2
+The Martian,12,2
+Neuromancer,13,2
+Foundation,14,2
+Project Hail Mary,12,2
+Snow Crash,15,2
+Hyperion,16,2
+Leviathan Wakes,17,2
+The Left Hand of Darkness,18,2
+The Hobbit,19,3
+The Name of the Wind,20,3
+Mistborn,21,3
+The Way of Kings,21,3
+A Game of Thrones,22,3
+The Lies of Locke Lamora,23,3
+Assassin's Apprentice,24,3
+The Priory of the Orange Tree,25,3
+The Blade Itself,26,3
+Piranesi,27,3
+Pride and Prejudice,28,4
+Jane Eyre,29,4
+Moby-Dick,30,4
+Wuthering Heights,31,4
+Great Expectations,32,4
+Crime and Punishment,33,4
+The Great Gatsby,34,4
+Anna Karenina,35,4
+The Picture of Dorian Gray,36,4
+Dracula,37,4
+The Book Thief,38,5
+All the Light We Cannot See,39,5
+The Nightingale,40,5
+Wolf Hall,41,5
+Pachinko,42,5
+The Pillars of the Earth,43,5
+Homegoing,44,5
+The Alice Network,45,5
+Beneath a Scarlet Sky,46,5
+The Tattooist of Auschwitz,47,5
+The Girl with the Dragon Tattoo,48,6
+Gone Girl,49,6
+Big Little Lies,50,6
+The Silent Patient,51,6
+In the Woods,52,6
+The Thursday Murder Club,53,6
+The Hound of the Baskervilles,54,6
+Magpie Murders,55,6
+The Guest List,56,6
+And Then There Were None,57,6
+It,58,7
+The Shining,58,7
+Mexican Gothic,59,7
+Bird Box,60,7
+The Haunting of Hill House,61,7
+House of Leaves,62,7
+Pet Sematary,58,7
+The Exorcist,63,7
+Tender Is the Flesh,64,7
+Sapiens,65,8
+Educated,66,8
+Atomic Habits,67,8
+"Thinking, Fast and Slow",68,8
+Born a Crime,69,8
+The Immortal Life of Henrietta Lacks,70,8
+Into Thin Air,71,8
+Quiet,72,8
+Outliers,73,8
+Freakonomics,74,8
+The Notebook,75,9
+Beach Read,76,9
+Book Lovers,76,9
+"Red, White & Royal Blue",77,9
+The Kiss Quotient,78,9
+People We Meet on Vacation,76,9
+It Ends With Us,79,9
+The Rosie Project,80,9
+Me Before You,81,9
+The Da Vinci Code,82,10
+The Girl on the Train,83,10
+Shutter Island,84,10
+Killing Floor,85,10
+Dark Matter,86,10
+The Chain,87,10
+Before I Go to Sleep,88,10
+I Am Pilgrim,89,10
+The Bourne Identity,90,10
+The Woman in the Window,91,10
+The Sun and Her Flowers,92,11
+Milk and Honey,92,11
+Leaves of Grass,93,11
+Ariel,94,11
+The Waste Land,95,11
+Devotions,96,11
+The Collected Poems,97,11
+Citizen,98,11
+Life on Mars,99,11
+The Essential Rumi,100,11
+The Hunger Games,101,12
+Percy Jackson and the Olympians: The Lightning Thief,102,12
+Six of Crows,103,12
+The Fault in Our Stars,104,12
+Divergent,105,12
+Legend,106,12
+Scythe,107,12
+Shadow and Bone,103,12
+An Ember in the Ashes,108,12

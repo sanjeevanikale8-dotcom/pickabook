@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pickabook</title>
+
+<!-- Google Fonts: Fraunces (the italic serif) + Poppins (the bold sans) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;1,500&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+
+<!-- All visual styling lives here -->
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<button id="themeToggle" type="button" aria-label="Switch to light mode" title="Switch to light mode">🌙</button>
+
+<div class="card">
+  <h1>pickabook</h1>
+  <p class="subtitle">spin to pick your next read</p>
+
+  <div class="genre-bar">
+    <label for="genreSelect">Genre</label>
+    <select id="genreSelect">
+      <option value="all">All genres</option>
+    </select>
+  </div>
+
+  <div class="reel-frame">
+    <div class="reel-window"></div>
+    <div id="reel"></div>
+  </div>
+
+  <div class="spin-row">
+    <button id="spinBtn">Spin for a book</button>
+    <button id="muteBtn" type="button" aria-label="Mute sound" title="Mute sound">🔊</button>
+  </div>
+
+  <div id="resultBox">
+    <button id="readBtn">Read this book →</button>
+  </div>
+
+  <p class="footnote" id="footnote"></p>
+</div>
+
+<!-- All the interactive logic (fetching books, spinning, filtering) lives here -->
+<script src="script.js"></script>
+
+</body>
+</html>
