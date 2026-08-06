@@ -15,7 +15,7 @@
   --surface: #7C8853;                         /* cards / dropdown / reel background */
   --border: rgba(246, 224, 229, 0.28);        /* faint pink border */
   --border-strong: rgba(246, 224, 229, 0.55); /* more visible pink border */
-  --text-primary: #FBE9ED;                    /* main text — blush pink/cream */
+  --text-primary: #F9D1D9;                    /* main text — blush pink/cream */
   --text-secondary: rgba(251, 233, 237, 0.68);/* muted secondary text */
   --accent: #F5DCE0;                          /* button fill / highlighted text */
   --accent-text: #5C6640;                     /* dark green text on pink buttons */
