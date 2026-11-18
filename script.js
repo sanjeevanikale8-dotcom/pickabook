@@ -360,13 +360,13 @@ readBtn.addEventListener('click', () => {
 
 
 // -----------------------------------------------------------
-// MY SHELF — the last 6 spins per genre, saved in this browser
+// MY SHELF — your recent spins per genre, saved in this browser
 // (localStorage). Nothing here goes to Supabase; it's just a
 // personal memory so you never lose track of a book you landed on.
 // Shape saved: { "Fantasy": [ {id, title, author}, ... newest first ], ... }
 // -----------------------------------------------------------
 const SHELF_KEY = 'pickabook_shelf';
-const SHELF_LIMIT = 6;
+const SHELF_LIMIT = 30; // untagged spins kept per genre. Tagged books are never removed.
 
 const menuToggle = document.getElementById('menuToggle');
 const menuDrawer = document.getElementById('menuDrawer');
@@ -377,6 +377,8 @@ const drawerTitle = document.getElementById('drawerTitle');
 const menuView = document.getElementById('menuView');
 const shelfView = document.getElementById('shelfView');
 const suggestView = document.getElementById('suggestView');
+const trackerView = document.getElementById('trackerView');
+const timerView = document.getElementById('timerView');
 const shelfRows = document.getElementById('shelfRows');
 const shelfDetail = document.getElementById('shelfDetail');
 const shelfClear = document.getElementById('shelfClear');
@@ -403,7 +405,14 @@ function addToShelf(book) {
   const shelf = loadShelf();
   const row = (shelf[genre] || []).filter(b => b.id !== id); // no duplicates
   row.unshift({ id, title, author });                         // newest first
-  shelf[genre] = row.slice(0, SHELF_LIMIT);
+  // Keep every tagged book; only untagged ones are capped, oldest dropped first.
+  const tags = loadTags();
+  let untagged = 0;
+  shelf[genre] = row.filter(b => {
+    if (tags[b.id]) return true;
+    untagged++;
+    return untagged <= SHELF_LIMIT;
+  });
   saveShelf(shelf);
   renderShelf();
 }
@@ -414,17 +423,60 @@ function spineHeight(id) {
 }
 
 function shortTitle(title, h) {
-  const max = Math.floor((h - 18) / 5.6);
+  const max = Math.floor((h - 26) / 5.6);
   return title.length > max ? title.slice(0, max - 1).trimEnd() + '…' : title;
+}
+
+// Tags (want / reading / read) live in their own storage, separate from
+// the shelf, because untagged spins eventually rotate off the shelf —
+// but the reading tracker needs to remember every book you finished.
+// Shape: { "<bookId>": { tag, title, author, finishedAt } }
+const TAGS_KEY = 'pickabook_tags';
+const TAG_LABELS = { want: 'Want to read', reading: 'Reading', read: 'Read' };
+let selectedShelfId = null;
+
+function loadTags() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(TAGS_KEY));
+    return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveTags(tags) {
+  try {
+    localStorage.setItem(TAGS_KEY, JSON.stringify(tags));
+  } catch (e) {
+    console.error('Could not save tags:', e);
+  }
+}
+
+// Tapping a tag sets it; tapping the same tag again removes it.
+function setTag(item, tag) {
+  const tags = loadTags();
+  const cur = tags[item.id];
+  if (cur && cur.tag === tag) {
+    delete tags[item.id];
+  } else {
+    const keepDate = cur && cur.tag === 'read' && tag === 'read';
+    tags[item.id] = {
+      tag,
+      title: item.title,
+      author: item.author,
+      finishedAt: tag === 'read' ? (keepDate ? cur.finishedAt : new Date().toISOString()) : null
+    };
+  }
+  saveTags(tags);
+  renderShelf();
 }
 
 function renderShelf() {
   const shelf = loadShelf();
+  const tags = loadTags();
   const names = [...new Set([...books.map(b => b[2]), ...Object.keys(shelf)])].sort();
   shelfRows.textContent = '';
-  shelfDetail.textContent = Object.keys(shelf).length
-    ? 'Tap a spine to pull it out.'
-    : 'Spin for a book to start filling your shelf.';
+  let selectedItem = null;
 
   names.forEach(name => {
     const items = shelf[name] || [];
@@ -438,7 +490,8 @@ function renderShelf() {
     const row = document.createElement('div');
     row.className = 'shelf-row';
 
-    for (let i = 0; i < SHELF_LIMIT; i++) {
+    const slots = Math.max(6, items.length); // always show at least 6 places on the shelf
+    for (let i = 0; i < slots; i++) {
       const item = items[i];
       if (!item) {
         const slot = document.createElement('div');
@@ -447,11 +500,15 @@ function renderShelf() {
         continue;
       }
       const h = spineHeight(item.id);
+      const tag = tags[item.id] ? tags[item.id].tag : null;
+      const isSelected = item.id === selectedShelfId;
+      if (isSelected) selectedItem = item;
+
       const spine = document.createElement('button');
       spine.type = 'button';
-      spine.className = `spine c${Number(item.id) % 5}`;
+      spine.className = `spine c${Number(item.id) % 5}` + (tag ? ` t-${tag}` : '') + (isSelected ? ' out' : '');
       spine.style.height = h + 'px';
-      spine.setAttribute('aria-label', `${item.title} by ${item.author}`);
+      spine.setAttribute('aria-label', `${item.title} by ${item.author}` + (tag ? ` (${TAG_LABELS[tag]})` : ''));
       const t = document.createElement('span');
       t.className = 'spine-title';
       t.textContent = shortTitle(item.title, h);
@@ -459,6 +516,7 @@ function renderShelf() {
       spine.addEventListener('click', () => {
         shelfRows.querySelectorAll('.spine.out').forEach(s => s.classList.remove('out'));
         spine.classList.add('out');
+        selectedShelfId = item.id;
         showShelfDetail(item);
       });
       row.appendChild(spine);
@@ -468,20 +526,45 @@ function renderShelf() {
     group.appendChild(row);
     shelfRows.appendChild(group);
   });
+
+  if (selectedItem) {
+    showShelfDetail(selectedItem);
+  } else {
+    selectedShelfId = null;
+    shelfDetail.textContent = Object.keys(shelf).length
+      ? 'Tap a spine to pull it out.'
+      : 'Spin for a book to start filling your shelf.';
+  }
 }
 
 function showShelfDetail(item) {
+  const tags = loadTags();
+  const current = tags[item.id] ? tags[item.id].tag : null;
+
   shelfDetail.textContent = '';
   const t = document.createElement('strong');
   t.textContent = item.title;
   const a = document.createElement('div');
   a.textContent = item.author;
+
+  const tagRow = document.createElement('div');
+  tagRow.className = 'tag-row';
+  Object.entries(TAG_LABELS).forEach(([key, label]) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tag-btn' + (key === current ? ' on' : '');
+    b.setAttribute('aria-pressed', String(key === current));
+    b.textContent = label;
+    b.addEventListener('click', () => setTag(item, key));
+    tagRow.appendChild(b);
+  });
+
   const link = document.createElement('a');
   link.href = 'https://www.google.com/search?q=' + encodeURIComponent(`${item.title} ${item.author}`);
   link.target = '_blank';
   link.rel = 'noopener noreferrer';
   link.textContent = 'Look it up →';
-  shelfDetail.append(t, a, link);
+  shelfDetail.append(t, a, tagRow, link);
 }
 
 // The drawer has two "views": the list of menu options, and the
@@ -489,13 +572,15 @@ function showShelfDetail(item) {
 // To add another option later: add a <li> in index.html and add
 // its view here.
 function showView(view) {
-  const views = { shelf: shelfView, suggest: suggestView };
-  const titles = { shelf: 'My shelf', suggest: 'Suggest a book' };
+  const views = { shelf: shelfView, tracker: trackerView, timer: timerView, suggest: suggestView };
+  const titles = { shelf: 'My shelf', tracker: 'Tracker', timer: 'Reading timer', suggest: 'Suggest a book' };
   menuView.hidden = view in views;
   Object.entries(views).forEach(([name, el]) => { el.hidden = name !== view; });
   drawerBack.hidden = !(view in views);
   drawerTitle.textContent = titles[view] || 'Menu';
   if (view === 'shelf') renderShelf();
+  if (view === 'tracker') renderTracker();
+  if (view === 'timer') renderTimer();
 }
 
 function setMenuOpen(open) {
@@ -516,8 +601,9 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && menuDrawer.classList.contains('open')) setMenuOpen(false);
 });
 shelfClear.addEventListener('click', () => {
-  if (confirm('Clear everything on your shelf?')) {
+  if (confirm('Clear your shelf? Your reading tracker is kept.')) {
     saveShelf({});
+    selectedShelfId = null;
     renderShelf();
   }
 });
@@ -587,6 +673,214 @@ suggestForm.addEventListener('submit', async (e) => {
     sugSubmit.disabled = false;
   }
 });
+
+// -----------------------------------------------------------
+// TRACKER — counts books you've tagged "Read", by month, and
+// shows progress toward a monthly goal. All saved in this browser.
+// -----------------------------------------------------------
+const GOAL_KEY = 'pickabook_goal';
+const goalLabel = document.getElementById('goalLabel');
+const goalCount = document.getElementById('goalCount');
+const goalFill = document.getElementById('goalFill');
+const goalInput = document.getElementById('goalInput');
+const goalSave = document.getElementById('goalSave');
+const monthBars = document.getElementById('monthBars');
+const trackerExtra = document.getElementById('trackerExtra');
+const trackerSub = document.getElementById('trackerSub');
+
+function monthKey(d) {
+  return `${d.getFullYear()}-${d.getMonth()}`;
+}
+
+function loadGoal() {
+  try { return Number(localStorage.getItem(GOAL_KEY)) || 0; } catch (e) { return 0; }
+}
+
+function renderTracker() {
+  const tags = Object.values(loadTags());
+  const counts = {};
+  tags.filter(t => t.tag === 'read' && t.finishedAt).forEach(t => {
+    const k = monthKey(new Date(t.finishedAt));
+    counts[k] = (counts[k] || 0) + 1;
+  });
+
+  const now = new Date();
+  const goal = loadGoal();
+  const doneNow = counts[monthKey(now)] || 0;
+  const monthName = now.toLocaleString('default', { month: 'long' });
+
+  goalLabel.textContent = goal && doneNow >= goal ? `${monthName} goal reached 🎉` : `${monthName}`;
+  goalCount.textContent = goal ? `${doneNow} / ${goal} books` : `${doneNow} read`;
+  goalFill.style.width = goal ? Math.min(100, (doneNow / goal) * 100) + '%' : '0%';
+  goalInput.value = goal || '';
+
+  // January to December of the current year
+  const year = now.getFullYear();
+  trackerSub.textContent = `Books read in ${year}`;
+  const months = [];
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(year, i, 1);
+    months.push({ name: d.toLocaleString('default', { month: 'short' }), n: counts[monthKey(d)] || 0 });
+  }
+  const max = Math.max(1, goal, ...months.map(m => m.n));
+  monthBars.textContent = '';
+  months.forEach(m => {
+    const row = document.createElement('div');
+    row.className = 'month-row';
+    const name = document.createElement('span');
+    name.className = 'm-name';
+    name.textContent = m.name;
+    const track = document.createElement('div');
+    track.className = 'm-track';
+    const fill = document.createElement('div');
+    fill.className = 'm-fill';
+    fill.style.width = (m.n / max) * 100 + '%';
+    track.appendChild(fill);
+    const n = document.createElement('span');
+    n.className = 'm-count';
+    n.textContent = m.n;
+    row.append(name, track, n);
+    monthBars.appendChild(row);
+  });
+
+  const reading = tags.filter(t => t.tag === 'reading').length;
+  const want = tags.filter(t => t.tag === 'want').length;
+  trackerExtra.textContent = `Reading now: ${reading} · Want to read: ${want}`;
+}
+
+goalSave.addEventListener('click', () => {
+  const v = parseInt(goalInput.value, 10);
+  try {
+    if (Number.isFinite(v) && v >= 1) localStorage.setItem(GOAL_KEY, String(Math.min(v, 99)));
+    else localStorage.removeItem(GOAL_KEY);
+  } catch (e) {}
+  renderTracker();
+});
+
+// -----------------------------------------------------------
+// READING TIMER — a pomodoro: a reading session, then a break.
+// It uses the clock time it should end at (not "count down by 1
+// each second"), so it stays accurate even if the tab is in the
+// background. Closing the menu does NOT stop it.
+// -----------------------------------------------------------
+const SESSIONS_KEY = 'pickabook_sessions';
+const timerMode = document.getElementById('timerMode');
+const timerDisplay = document.getElementById('timerDisplay');
+const timerStart = document.getElementById('timerStart');
+const timerReset = document.getElementById('timerReset');
+const focusMins = document.getElementById('focusMins');
+const breakMins = document.getElementById('breakMins');
+const timerSessions = document.getElementById('timerSessions');
+
+let timerKind = 'focus';   // 'focus' or 'break'
+let timerRunning = false;
+let timerEndAt = 0;
+let timerLeftMs = Number(focusMins.value) * 60000;
+let timerInterval = null;
+
+function timerDuration() {
+  return Number(timerKind === 'focus' ? focusMins.value : breakMins.value) * 60000;
+}
+
+function formatTime(ms) {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const m = String(Math.floor(total / 60)).padStart(2, '0');
+  const sec = String(total % 60).padStart(2, '0');
+  return `${m}:${sec}`;
+}
+
+function todayKey() {
+  return new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+}
+
+function sessionsToday() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SESSIONS_KEY));
+    return raw && raw.date === todayKey() ? Number(raw.count) || 0 : 0;
+  } catch (e) { return 0; }
+}
+
+function addSession() {
+  try {
+    localStorage.setItem(SESSIONS_KEY, JSON.stringify({ date: todayKey(), count: sessionsToday() + 1 }));
+  } catch (e) {}
+}
+
+function renderTimer() {
+  const left = timerRunning ? timerEndAt - Date.now() : timerLeftMs;
+  timerDisplay.textContent = formatTime(left);
+  timerMode.textContent = timerKind === 'focus' ? 'Reading session' : 'Break — stretch and rest your eyes';
+  timerStart.textContent = timerRunning ? 'Pause' : 'Start';
+  const n = sessionsToday();
+  timerSessions.textContent = n ? `Sessions finished today: ${n}` : '';
+  document.title = timerRunning ? `${formatTime(left)} · pickabook` : 'pickabook';
+}
+
+// A soft two-note chime when a session ends (respects the mute button).
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function playChime() {
+  if (!soundOn) return;
+  try {
+    const ctx = getAudio();
+    [660, 880].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const t0 = ctx.currentTime + i * 0.25;
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.15, t0 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.0);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + 1.05);
+    });
+  } catch (e) {}
+}
+
+function timerTick() {
+  if (timerEndAt - Date.now() <= 0) {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    if (timerKind === 'focus') addSession();
+    timerKind = timerKind === 'focus' ? 'break' : 'focus';
+    timerLeftMs = timerDuration();
+    playChime();
+  }
+  renderTimer();
+}
+
+timerStart.addEventListener('click', () => {
+  if (timerRunning) {
+    timerLeftMs = timerEndAt - Date.now();
+    timerRunning = false;
+    clearInterval(timerInterval);
+  } else {
+    try { getAudio(); } catch (e) {} // created on a click so the chime is allowed to play later
+    timerEndAt = Date.now() + timerLeftMs;
+    timerRunning = true;
+    timerInterval = setInterval(timerTick, 250);
+  }
+  renderTimer();
+});
+
+timerReset.addEventListener('click', () => {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  timerLeftMs = timerDuration();
+  renderTimer();
+});
+
+[focusMins, breakMins].forEach(sel => sel.addEventListener('change', () => {
+  if (!timerRunning) timerLeftMs = timerDuration();
+  renderTimer();
+}));
 
 // -----------------------------------------------------------
 // 8. WIRE UP THE GENRE DROPDOWN + KICK EVERYTHING OFF

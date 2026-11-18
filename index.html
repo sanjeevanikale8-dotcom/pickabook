@@ -43,19 +43,58 @@
   <div id="menuView">
     <ul class="menu-list">
       <li><button type="button" class="menu-item" data-view="shelf"><span>My shelf</span><span aria-hidden="true">›</span></button></li>
+      <li><button type="button" class="menu-item" data-view="tracker"><span>Tracker</span><span aria-hidden="true">›</span></button></li>
+      <li><button type="button" class="menu-item" data-view="timer"><span>Reading timer</span><span aria-hidden="true">›</span></button></li>
       <li><button type="button" class="menu-item" data-view="suggest"><span>Suggest a book</span><span aria-hidden="true">›</span></button></li>
     </ul>
   </div>
 
   <!-- VIEW 2: the shelf -->
   <div id="shelfView" hidden>
-    <p class="shelf-hint">Newest spin on the left. Each row keeps your last 6.</p>
+    <p class="shelf-hint">Newest spin on the left. Scroll sideways for older ones. Tap a book to tag it.<br><span class="lg"></span>want to read &nbsp; <span class="lg lg-reading"></span>reading &nbsp; <span class="lg lg-read"></span>read</p>
     <div id="shelfRows"></div>
     <div id="shelfDetail" class="shelf-detail" aria-live="polite"></div>
     <button id="shelfClear" type="button" class="shelf-clear">Clear shelf</button>
   </div>
 
-  <!-- VIEW 3: suggest a book -->
+  <!-- VIEW 3: tracker -->
+  <div id="trackerView" hidden>
+    <p class="shelf-hint">Tag a book as "Read" on your shelf and it counts here.</p>
+    <div class="goal-card">
+      <div class="goal-top"><span id="goalLabel"></span><span id="goalCount"></span></div>
+      <div class="goal-bar"><div id="goalFill"></div></div>
+      <div class="goal-set">
+        <label for="goalInput">Monthly goal</label>
+        <input id="goalInput" type="number" min="1" max="99" inputmode="numeric" placeholder="books">
+        <button id="goalSave" type="button">Set</button>
+      </div>
+    </div>
+    <div id="trackerSub" class="tracker-sub">Books read this year</div>
+    <div id="monthBars"></div>
+    <p id="trackerExtra" class="tracker-extra"></p>
+  </div>
+
+  <!-- VIEW 4: reading timer (pomodoro) -->
+  <div id="timerView" hidden>
+    <p class="shelf-hint">Read in focused sessions with short breaks in between.</p>
+    <div id="timerMode" class="timer-mode">Reading session</div>
+    <div id="timerDisplay" class="timer-display" role="timer">25:00</div>
+    <div class="timer-controls">
+      <button id="timerStart" type="button">Start</button>
+      <button id="timerReset" type="button" class="ghost">Reset</button>
+    </div>
+    <div class="timer-settings">
+      <label>Read
+        <select id="focusMins"><option value="15">15 min</option><option value="25" selected>25 min</option><option value="45">45 min</option><option value="60">60 min</option></select>
+      </label>
+      <label>Break
+        <select id="breakMins"><option value="5" selected>5 min</option><option value="10">10 min</option><option value="15">15 min</option></select>
+      </label>
+    </div>
+    <p id="timerSessions" class="sug-status"></p>
+  </div>
+
+  <!-- VIEW 5: suggest a book -->
   <div id="suggestView" hidden>
     <p class="shelf-hint">Know a great read that's missing? Send it in. Suggestions are reviewed before they join the reel.</p>
     <form id="suggestForm" class="suggest-form" autocomplete="off">
