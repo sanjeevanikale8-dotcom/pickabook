@@ -189,6 +189,7 @@ async function loadBooksFromSupabase() {
     ]);
 
     rebuildGenreOptions();
+    renderShelf();
     renderPreview();
     spinBtn.disabled = false;
     footnote.textContent = '';
@@ -333,7 +334,8 @@ function runBounce(finalTop, winner) {
     } else {
       reel.style.top = finalTop + 'px';
       logSpin(winner[3]); // log this spin to Supabase
-      // Now that the reel has actually settled, reveal the result.// Now that the reel has actually settled, reveal the result.
+      addToShelf(winner); // and remember it on this browser's shelf
+      // Now that the reel has actually settled, reveal the result.
       spinning = false;
       spinBtn.disabled = false;
       resultBox.style.display = 'block';
@@ -353,6 +355,168 @@ readBtn.addEventListener('click', () => {
   if (!currentWinner) return;
   const query = encodeURIComponent(`${currentWinner[0]} ${currentWinner[1]}`);
   window.open(`https://www.google.com/search?q=${query}`, '_blank');
+});
+
+
+// -----------------------------------------------------------
+// MY SHELF — the last 6 spins per genre, saved in this browser
+// (localStorage). Nothing here goes to Supabase; it's just a
+// personal memory so you never lose track of a book you landed on.
+// Shape saved: { "Fantasy": [ {id, title, author}, ... newest first ], ... }
+// -----------------------------------------------------------
+const SHELF_KEY = 'pickabook_shelf';
+const SHELF_LIMIT = 6;
+
+const menuToggle = document.getElementById('menuToggle');
+const menuDrawer = document.getElementById('menuDrawer');
+const menuScrim = document.getElementById('menuScrim');
+const menuClose = document.getElementById('menuClose');
+const drawerBack = document.getElementById('drawerBack');
+const drawerTitle = document.getElementById('drawerTitle');
+const menuView = document.getElementById('menuView');
+const shelfView = document.getElementById('shelfView');
+const shelfRows = document.getElementById('shelfRows');
+const shelfDetail = document.getElementById('shelfDetail');
+const shelfClear = document.getElementById('shelfClear');
+
+function loadShelf() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SHELF_KEY));
+    return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveShelf(shelf) {
+  try {
+    localStorage.setItem(SHELF_KEY, JSON.stringify(shelf));
+  } catch (e) {
+    console.error('Could not save shelf:', e);
+  }
+}
+
+function addToShelf(book) {
+  const [title, author, genre, id] = book;
+  const shelf = loadShelf();
+  const row = (shelf[genre] || []).filter(b => b.id !== id); // no duplicates
+  row.unshift({ id, title, author });                         // newest first
+  shelf[genre] = row.slice(0, SHELF_LIMIT);
+  saveShelf(shelf);
+  renderShelf();
+}
+
+// Slightly different spine heights so the shelf looks natural.
+function spineHeight(id) {
+  return 92 + ((Number(id) * 7) % 5) * 6;
+}
+
+function shortTitle(title, h) {
+  const max = Math.floor((h - 18) / 5.6);
+  return title.length > max ? title.slice(0, max - 1).trimEnd() + '…' : title;
+}
+
+function renderShelf() {
+  const shelf = loadShelf();
+  const names = [...new Set([...books.map(b => b[2]), ...Object.keys(shelf)])].sort();
+  shelfRows.textContent = '';
+  shelfDetail.textContent = Object.keys(shelf).length
+    ? 'Tap a spine to pull it out.'
+    : 'Spin for a book to start filling your shelf.';
+
+  names.forEach(name => {
+    const items = shelf[name] || [];
+    const group = document.createElement('div');
+    group.className = 'shelf-genre';
+
+    const label = document.createElement('div');
+    label.className = 'shelf-genre-name';
+    label.textContent = name;
+
+    const row = document.createElement('div');
+    row.className = 'shelf-row';
+
+    for (let i = 0; i < SHELF_LIMIT; i++) {
+      const item = items[i];
+      if (!item) {
+        const slot = document.createElement('div');
+        slot.className = 'shelf-slot';
+        row.appendChild(slot);
+        continue;
+      }
+      const h = spineHeight(item.id);
+      const spine = document.createElement('button');
+      spine.type = 'button';
+      spine.className = `spine c${Number(item.id) % 5}`;
+      spine.style.height = h + 'px';
+      spine.setAttribute('aria-label', `${item.title} by ${item.author}`);
+      const t = document.createElement('span');
+      t.className = 'spine-title';
+      t.textContent = shortTitle(item.title, h);
+      spine.appendChild(t);
+      spine.addEventListener('click', () => {
+        shelfRows.querySelectorAll('.spine.out').forEach(s => s.classList.remove('out'));
+        spine.classList.add('out');
+        showShelfDetail(item);
+      });
+      row.appendChild(spine);
+    }
+
+    group.appendChild(label);
+    group.appendChild(row);
+    shelfRows.appendChild(group);
+  });
+}
+
+function showShelfDetail(item) {
+  shelfDetail.textContent = '';
+  const t = document.createElement('strong');
+  t.textContent = item.title;
+  const a = document.createElement('div');
+  a.textContent = item.author;
+  const link = document.createElement('a');
+  link.href = 'https://www.google.com/search?q=' + encodeURIComponent(`${item.title} ${item.author}`);
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.textContent = 'Look it up →';
+  shelfDetail.append(t, a, link);
+}
+
+// The drawer has two "views": the list of menu options, and the
+// screen for whichever option you picked (so far just the shelf).
+// To add another option later: add a <li> in index.html and add
+// its view here.
+function showView(view) {
+  const isShelf = view === 'shelf';
+  menuView.hidden = isShelf;
+  shelfView.hidden = !isShelf;
+  drawerBack.hidden = !isShelf;
+  drawerTitle.textContent = isShelf ? 'My shelf' : 'Menu';
+  if (isShelf) renderShelf();
+}
+
+function setMenuOpen(open) {
+  menuDrawer.classList.toggle('open', open);
+  menuScrim.classList.toggle('open', open);
+  menuToggle.setAttribute('aria-expanded', String(open));
+  if (open) showView('menu'); // always start at the list
+  (open ? menuClose : menuToggle).focus();
+}
+
+menuToggle.addEventListener('click', () => setMenuOpen(!menuDrawer.classList.contains('open')));
+menuClose.addEventListener('click', () => setMenuOpen(false));
+menuScrim.addEventListener('click', () => setMenuOpen(false));
+drawerBack.addEventListener('click', () => showView('menu'));
+document.querySelectorAll('.menu-item').forEach(btn =>
+  btn.addEventListener('click', () => showView(btn.dataset.view)));
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && menuDrawer.classList.contains('open')) setMenuOpen(false);
+});
+shelfClear.addEventListener('click', () => {
+  if (confirm('Clear everything on your shelf?')) {
+    saveShelf({});
+    renderShelf();
+  }
 });
 
 // -----------------------------------------------------------

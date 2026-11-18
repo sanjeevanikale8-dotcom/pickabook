@@ -243,3 +243,152 @@ button:disabled { opacity: 0.5; cursor: default; }
   font-size: 0.75rem;
   color: var(--text-secondary);
 }
+
+/* ==========================================================
+   MY SHELF — spine colors from the palette
+   Vanilla Cream, Blush Petal, Rosewood, Misty Sky, Midnight Lagoon.
+   Dark (matcha) theme skips Sage Leaf since it blends into the bg.
+   Light (strawberry) theme swaps Blush out (blends into pink) and
+   brings Sage in.
+   ========================================================== */
+:root {
+  --s0: #FFF7E6; --i0: #3A4424;
+  --s1: #F7C8D3; --i1: #3A4424;
+  --s2: #B46A72; --i2: #FFF7E6;
+  --s3: #A9B7C6; --i3: #2D3A47;
+  --s4: #2D3A47; --i4: #FFF7E6;
+  --shelf-bg: #6E7A4C;
+  --plank: #5C6640;
+}
+html[data-theme="light"] {
+  --s1: #B46A72; --i1: #FFF7E6;
+  --s2: #A8B58A; --i2: #3A4424;
+  --shelf-bg: #F3C3CD;
+  --plank: #C9889A;
+}
+
+/* Plain icon in the top-left — no circle, border or background */
+#menuToggle {
+  position: fixed;
+  top: 1.25rem;
+  left: 1.25rem;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#menuToggle:hover { background: none; transform: scale(1.1); }
+
+.menu-scrim {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.35);
+  opacity: 0; visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s;
+  z-index: 40;
+}
+.menu-scrim.open { opacity: 1; visibility: visible; }
+
+.menu-drawer {
+  position: fixed; top: 0; left: 0; bottom: 0;
+  width: min(360px, 88vw);
+  background: var(--shelf-bg);
+  border-right: 1px solid var(--border-strong);
+  padding: 1.25rem 1rem 1.5rem;
+  overflow-y: auto;
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition: transform 0.3s ease, visibility 0.3s;
+  z-index: 50;
+}
+.menu-drawer.open { transform: translateX(0); visibility: visible; }
+
+.drawer-head { display: flex; align-items: center; gap: 0.4rem; }
+.drawer-head h2 { flex: 1; }
+.menu-drawer h2 {
+  margin: 0;
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 1.6rem;
+  color: var(--text-primary);
+}
+.menu-drawer .drawer-head button {
+  width: 34px; height: 34px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent;
+  color: var(--text-primary);
+}
+.menu-drawer .drawer-head button:hover { background: rgba(0,0,0,0.1); }
+.shelf-hint { font-size: 0.75rem; color: var(--text-secondary); margin: 0.3rem 0 1rem; }
+
+.shelf-genre { margin-bottom: 1rem; }
+.shelf-genre-name {
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--text-secondary);
+  margin-bottom: 0.3rem;
+}
+.shelf-row {
+  display: flex; align-items: flex-end; gap: 6px;
+  height: 124px; padding: 0 6px;
+  border-bottom: 5px solid var(--plank);
+}
+
+.menu-drawer .spine {
+  width: 30px; padding: 6px 0; border: none; border-radius: 3px 3px 0 0;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex: 0 0 auto;
+  transition: transform 0.15s ease;
+}
+.menu-drawer .spine:hover { transform: translateY(-6px); }
+.menu-drawer .spine.out { transform: translateY(-12px); outline: 2px solid var(--text-primary); }
+.menu-drawer .spine.c0 { background: var(--s0); color: var(--i0); }
+.menu-drawer .spine.c1 { background: var(--s1); color: var(--i1); }
+.menu-drawer .spine.c2 { background: var(--s2); color: var(--i2); }
+.menu-drawer .spine.c3 { background: var(--s3); color: var(--i3); }
+.menu-drawer .spine.c4 { background: var(--s4); color: var(--i4); }
+
+.spine-title {
+  writing-mode: vertical-rl;
+  font-family: 'Fraunces', serif; font-style: italic;
+  font-size: 11px; line-height: 1; white-space: nowrap;
+}
+.shelf-slot {
+  width: 30px; height: 70px; flex: 0 0 auto;
+  border: 1px dashed var(--border); border-bottom: none; border-radius: 3px 3px 0 0;
+}
+
+.shelf-detail {
+  margin-top: 0.75rem; padding: 0.75rem;
+  background: rgba(0,0,0,0.1); border-radius: var(--radius);
+  font-size: 0.85rem; color: var(--text-primary);
+}
+.shelf-detail a { color: var(--accent); }
+.menu-drawer .shelf-clear {
+  margin-top: 0.75rem; padding: 0; border: none; background: none;
+  font-size: 0.75rem; font-weight: 500; color: var(--text-secondary);
+  text-decoration: underline;
+}
+.menu-drawer .shelf-clear:hover { background: none; color: var(--text-primary); }
+
+.menu-drawer [hidden] { display: none; }
+
+/* ----- Menu option list ----- */
+.menu-list { list-style: none; margin: 1.25rem 0 0; padding: 0; }
+.menu-drawer .menu-item {
+  width: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.85rem 0.25rem;
+  border: none; border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
+  color: var(--text-primary);
+  font-family: 'Fraunces', serif; font-style: italic; font-weight: 500;
+  font-size: 1.15rem;
+  text-align: left;
+}
+.menu-drawer .menu-item:hover { background: rgba(0,0,0,0.1); }
