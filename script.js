@@ -190,6 +190,7 @@ async function loadBooksFromSupabase() {
 
     rebuildGenreOptions();
     renderShelf();
+    fillSuggestGenres();
     renderPreview();
     spinBtn.disabled = false;
     footnote.textContent = '';
@@ -375,6 +376,7 @@ const drawerBack = document.getElementById('drawerBack');
 const drawerTitle = document.getElementById('drawerTitle');
 const menuView = document.getElementById('menuView');
 const shelfView = document.getElementById('shelfView');
+const suggestView = document.getElementById('suggestView');
 const shelfRows = document.getElementById('shelfRows');
 const shelfDetail = document.getElementById('shelfDetail');
 const shelfClear = document.getElementById('shelfClear');
@@ -487,12 +489,13 @@ function showShelfDetail(item) {
 // To add another option later: add a <li> in index.html and add
 // its view here.
 function showView(view) {
-  const isShelf = view === 'shelf';
-  menuView.hidden = isShelf;
-  shelfView.hidden = !isShelf;
-  drawerBack.hidden = !isShelf;
-  drawerTitle.textContent = isShelf ? 'My shelf' : 'Menu';
-  if (isShelf) renderShelf();
+  const views = { shelf: shelfView, suggest: suggestView };
+  const titles = { shelf: 'My shelf', suggest: 'Suggest a book' };
+  menuView.hidden = view in views;
+  Object.entries(views).forEach(([name, el]) => { el.hidden = name !== view; });
+  drawerBack.hidden = !(view in views);
+  drawerTitle.textContent = titles[view] || 'Menu';
+  if (view === 'shelf') renderShelf();
 }
 
 function setMenuOpen(open) {
@@ -516,6 +519,72 @@ shelfClear.addEventListener('click', () => {
   if (confirm('Clear everything on your shelf?')) {
     saveShelf({});
     renderShelf();
+  }
+});
+
+
+// -----------------------------------------------------------
+// SUGGEST A BOOK — sends the form to a separate "book_suggestions"
+// table in Supabase with status "pending". It never touches the
+// real "books" table, so nothing shows up on the reel until you
+// approve it yourself in the Supabase dashboard.
+// -----------------------------------------------------------
+const suggestForm = document.getElementById('suggestForm');
+const sugTitle = document.getElementById('sugTitle');
+const sugAuthor = document.getElementById('sugAuthor');
+const sugGenre = document.getElementById('sugGenre');
+const sugSubmit = document.getElementById('sugSubmit');
+const sugStatus = document.getElementById('sugStatus');
+const SUG_COOLDOWN_MS = 30000; // stops accidental double-sends / spam
+
+function fillSuggestGenres() {
+  const genres = [...new Set(books.map(b => b[2]))].sort();
+  sugGenre.textContent = '';
+  [...genres, 'Other / not sure'].forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g;
+    opt.textContent = g;
+    sugGenre.appendChild(opt);
+  });
+}
+
+suggestForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const title = sugTitle.value.trim();
+  const author = sugAuthor.value.trim();
+  if (!title || !author) {
+    sugStatus.textContent = 'Please fill in the title and author.';
+    return;
+  }
+
+  let last = 0;
+  try { last = Number(localStorage.getItem('pickabook_last_suggest')) || 0; } catch (err) {}
+  if (Date.now() - last < SUG_COOLDOWN_MS) {
+    sugStatus.textContent = 'One sec — wait a moment before sending another.';
+    return;
+  }
+
+  sugSubmit.disabled = true;
+  sugStatus.textContent = 'Sending…';
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/book_suggestions`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ title, author, genre: sugGenre.value })
+    });
+    if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+    try { localStorage.setItem('pickabook_last_suggest', String(Date.now())); } catch (err) {}
+    suggestForm.reset();
+    sugStatus.textContent = 'Thanks! Your suggestion is in for review.';
+  } catch (err) {
+    console.error('Could not send suggestion:', err);
+    sugStatus.textContent = 'Could not send that — please try again later.';
+  } finally {
+    sugSubmit.disabled = false;
   }
 });
 

@@ -43,6 +43,7 @@
   <div id="menuView">
     <ul class="menu-list">
       <li><button type="button" class="menu-item" data-view="shelf"><span>My shelf</span><span aria-hidden="true">›</span></button></li>
+      <li><button type="button" class="menu-item" data-view="suggest"><span>Suggest a book</span><span aria-hidden="true">›</span></button></li>
     </ul>
   </div>
 
@@ -52,6 +53,21 @@
     <div id="shelfRows"></div>
     <div id="shelfDetail" class="shelf-detail" aria-live="polite"></div>
     <button id="shelfClear" type="button" class="shelf-clear">Clear shelf</button>
+  </div>
+
+  <!-- VIEW 3: suggest a book -->
+  <div id="suggestView" hidden>
+    <p class="shelf-hint">Know a great read that's missing? Send it in. Suggestions are reviewed before they join the reel.</p>
+    <form id="suggestForm" class="suggest-form" autocomplete="off">
+      <label for="sugTitle">Book title</label>
+      <input id="sugTitle" type="text" maxlength="200" required>
+      <label for="sugAuthor">Author</label>
+      <input id="sugAuthor" type="text" maxlength="120" required>
+      <label for="sugGenre">Genre</label>
+      <select id="sugGenre"></select>
+      <button type="submit" id="sugSubmit">Send suggestion</button>
+      <p id="sugStatus" class="sug-status" aria-live="polite"></p>
+    </form>
   </div>
 </aside>
 
