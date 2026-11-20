@@ -476,3 +476,123 @@ html[data-theme="light"] {
   border: 1.5px solid currentColor; border-radius: 50%; }
 .lg-reading { background: linear-gradient(90deg, currentColor 50%, transparent 50%); }
 .lg-read { background: currentColor; }
+
+/* ==========================================================
+   MAIN SCREEN POLISH ("machine" look)
+   Flat colors only — no textures or gradients on backgrounds.
+   ========================================================== */
+#menuToggle { width: 48px; height: 48px; top: 1.1rem; left: 1.1rem; }
+#menuToggle svg { width: 32px; height: 32px; }
+
+.subtitle { color: var(--text-primary); opacity: 0.9; }
+
+/* Reel: rounder, bolder frame; edges fade so books slide in and out */
+.reel-frame { border: 2px solid var(--border-strong); border-radius: 16px; }
+.reel-frame::before, .reel-frame::after {
+  content: ''; position: absolute; left: 0; right: 0; height: 62px;
+  z-index: 3; pointer-events: none;
+}
+.reel-frame::before { top: 0; background: linear-gradient(var(--surface), transparent); }
+.reel-frame::after { bottom: 0; background: linear-gradient(transparent, var(--surface)); }
+.reel-item .title { font-size: 1.15rem; }
+
+/* Highlight bar with arrow markers pointing at the winner */
+.reel-window {
+  border-top: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+  background: rgba(255, 255, 255, 0.07);
+}
+.reel-window::before, .reel-window::after {
+  content: ''; position: absolute; top: 50%; margin-top: -7px;
+  border: 7px solid transparent;
+}
+.reel-window::before { left: 0; border-left-color: var(--accent); border-right-width: 0; }
+.reel-window::after { right: 0; border-right-color: var(--accent); border-left-width: 0; }
+
+/* Spin button presses down like a real key */
+#spinBtn { box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2); }
+#spinBtn:active { box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2); transform: translateY(3px); }
+#spinBtn:disabled { box-shadow: none; }
+
+.stats { margin: 1.25rem 0 0; font-size: 0.75rem; color: var(--text-secondary); }
+.stats + .footnote { margin-top: 0.5rem; }
+
+/* ==========================================================
+   MINI STORYBOOKS — tiny books on the front page that open and
+   close when clicked. One per color in the fig palette.
+   Each book has: a back cover + right page, and a front cover that
+   flips open around its spine (3D rotate). Colors come from the
+   --bk (cover) and --band (label) variables set in script.js.
+   ========================================================== */
+/* Where the books live.
+   - Wide screens: a full-page layer, books scattered in the empty side margins.
+   - Phones: a scatter area under the spin button (so books never cover the reel).
+   Each book has its own position (--x/--y wide, --mx/--my phone) and tilt (--r). */
+.book-field { position: relative; height: 300px; margin-top: 1.5rem; }
+.book-field .mini-book {
+  position: absolute; left: calc(var(--mx) * 1%); top: calc(var(--my) * 1%);
+  transform: rotate(var(--r));
+}
+@media (min-width: 900px) {
+  .book-field { position: fixed; inset: 0; height: auto; margin: 0; z-index: 1; pointer-events: none; }
+  .book-field .mini-book { left: calc(var(--x) * 1%); top: calc(var(--y) * 1%); pointer-events: auto; }
+}
+
+/* override the site-wide button styles (they're meant for the big buttons) */
+.book-field .mini-book {
+  flex: 0 0 auto; width: 66px; height: 52px; padding: 0;
+  border: none; border-radius: 0; background: none;
+  cursor: pointer; transition: transform 0.15s ease;
+}
+.book-field .mini-book:hover { background: none; transform: rotate(var(--r)) translateY(-3px); }
+.book-field .mini-book:active { transform: rotate(var(--r)) translateY(-1px); }
+.book-field .mini-book:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+
+/* .mb = the whole book. It slides sideways so a closed book (one
+   cover wide) sits centered, and an open book (two pages wide) too. */
+.mb {
+  position: absolute; left: 1px; top: 3px; width: 64px; height: 46px;
+  perspective: 300px;
+  transform: translateX(-16px);
+  transition: transform 0.5s cubic-bezier(0.3, 0.7, 0.3, 1);
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.18));
+}
+.mini-book.open .mb { transform: translateX(0); }
+
+.mb-base {                       /* back cover (right half) */
+  position: absolute; left: 32px; top: 0; width: 32px; height: 46px;
+  background: var(--bk); border-radius: 0 4px 4px 0;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+.mb-page, .mb-back::before {     /* cream page with faint writing lines */
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 5px, rgba(80, 52, 71, 0.22) 5px 6px) content-box,
+    #FBF1DD;
+}
+.mb-page {
+  position: absolute; left: 33px; top: 3px; width: 28px; height: 40px;
+  padding: 5px 4px; border-radius: 0 2px 2px 0;
+}
+
+.mb-cover {                      /* the cover that flips */
+  position: absolute; left: 32px; top: 0; width: 32px; height: 46px;
+  transform-origin: left center; transform-style: preserve-3d;
+  transition: transform 0.55s cubic-bezier(0.3, 0.7, 0.3, 1);
+}
+.mini-book.open .mb-cover { transform: rotateY(-180deg); }
+
+.mb-front, .mb-back {
+  position: absolute; inset: 0; backface-visibility: hidden;
+  background: var(--bk);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+.mb-front { border-radius: 0 4px 4px 0; box-shadow: inset 4px 0 0 rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.2); }
+.mb-back { transform: rotateY(180deg); border-radius: 4px 0 0 4px; }
+.mb-back::before {               /* the left page you see once it's open */
+  content: ''; position: absolute; inset: 3px 1px 3px 3px;
+  padding: 5px 4px; border-radius: 2px 0 0 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mb, .mb-cover, .book-field .mini-book { transition: none; }
+}

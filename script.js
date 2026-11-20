@@ -40,6 +40,7 @@ const muteBtn = document.getElementById('muteBtn');
 const resultBox = document.getElementById('resultBox');
 const readBtn = document.getElementById('readBtn');
 const footnote = document.getElementById('footnote');
+const stats = document.getElementById('stats');
 
 const itemH = 64; // must match .reel-item's height in styles.css
 
@@ -144,7 +145,17 @@ function rebuildGenreOptions() {
 function renderPreview() {
   const genre = genreSelect.value;
   const pool = genre === 'all' ? books : books.filter(b => b[2] === genre);
-  renderList(pool.slice(0, 6));
+
+  if (pool.length >= 5) {
+    // Wrap around so there are books ABOVE and BELOW the highlighted one
+    // (2 above, 1 in the bar, 2 below) and the reel looks full before a spin.
+    const n = pool.length;
+    renderList([pool[n - 2], pool[n - 1], pool[0], pool[1], pool[2]]);
+    reel.style.top = (78 - 2 * itemH) + 'px';
+  } else {
+    renderList(pool);
+    reel.style.top = '78px';
+  }
   resultBox.style.display = 'none';
   footnote.textContent = '';
   currentWinner = null;
@@ -189,6 +200,7 @@ async function loadBooksFromSupabase() {
     ]);
 
     rebuildGenreOptions();
+    stats.textContent = `${books.length} books · ${new Set(books.map(b => b[2])).size} genres · open the menu for more`;
     renderShelf();
     fillSuggestGenres();
     renderPreview();
@@ -881,6 +893,57 @@ timerReset.addEventListener('click', () => {
   if (!timerRunning) timerLeftMs = timerDuration();
   renderTimer();
 }));
+
+// -----------------------------------------------------------
+// MINI STORYBOOKS — tiny clickable books scattered around the page.
+// Each entry: [name, cover color, x%, y%, phone x%, phone y%, tilt°]
+// (x/y = where it sits on wide screens, in the side margins;
+//  phone x/y = where it sits in the scatter area on small screens.)
+// Palette: the "fig" palette.
+// -----------------------------------------------------------
+const MINI_BOOKS = [
+  ['Peach',          '#E18079',  7, 22,   3,  3, -12],
+  ['Juniper',        '#817F3E', 16, 38,  27,  8,   8],
+  ['Deep Raspberry', '#862C4D',  5, 50,  51,  2,  14],
+  ['Rose',           '#D8ADAA', 13, 66,  75,  6,  -7],
+  ['Lilac',          '#B385A2',  6, 80,  11, 38,  10],
+  ['Plum',           '#503447', 18, 86,  35, 34, -13],
+  ['Burnt Copper',   '#88241E', 88, 18,  59, 40,  12],
+  ['Millstone Grey', '#444D4C', 80, 34,  78, 36,  -8],
+  ['Berry',          '#B25074', 92, 45,   2, 72, -15],
+  ['Poppy',          '#D65341', 84, 60,  26, 76,   6],
+  ['Cream',          '#E9D8C0', 94, 72,  52, 70,  14],
+  ['Sagewood',       '#507555', 82, 84,  74, 74, -10]
+];
+const MINI_BOOKS_OPEN_AT = [1, 4, 6, 9]; // which ones start open
+
+function buildMiniBooks() {
+  const field = document.getElementById('bookField');
+  if (!field) return;
+  MINI_BOOKS.forEach(([name, color, x, y, mx, my, r], i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    const startOpen = MINI_BOOKS_OPEN_AT.includes(i);
+    b.className = 'mini-book' + (startOpen ? ' open' : '');
+    b.style.setProperty('--bk', color);
+    b.style.setProperty('--x', x);
+    b.style.setProperty('--y', y);
+    b.style.setProperty('--mx', mx);
+    b.style.setProperty('--my', my);
+    b.style.setProperty('--r', r + 'deg');
+    b.setAttribute('aria-pressed', String(startOpen));
+    b.setAttribute('aria-label', `${name} book`);
+    b.innerHTML = '<span class="mb"><span class="mb-base"></span><span class="mb-page"></span>' +
+      '<span class="mb-cover"><span class="mb-front"></span><span class="mb-back"></span></span></span>';
+    b.addEventListener('click', () => {
+      const open = b.classList.toggle('open');
+      b.setAttribute('aria-pressed', String(open));
+      if (typeof playTick === 'function') playTick(); // soft tick, respects the mute button
+    });
+    field.appendChild(b);
+  });
+}
+buildMiniBooks();
 
 // -----------------------------------------------------------
 // 8. WIRE UP THE GENRE DROPDOWN + KICK EVERYTHING OFF
